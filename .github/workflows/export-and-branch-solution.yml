@@ -39,12 +39,14 @@ jobs:
           solution-folder: solutions/ALMLab
           solution-type: Unmanaged
 
-      - name: Create branch for solution
+      - name: Push branch to GitHub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BRANCH_NAME="solution-update-$(date +%Y%m%d%H%M%S)"
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
           git checkout -b $BRANCH_NAME
           git add solutions/ALMLab
           git commit -m "Export and unpack ALMLab solution"
-          git push origin $BRANCH_NAME
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} $BRANCH_NAME
