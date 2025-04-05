@@ -1,0 +1,50 @@
+name: Export and Unpack Solution
+
+on:
+  workflow_dispatch:
+
+jobs:
+  export-solution:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Power Platform Tool Installer
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: WhoAmI - Verify connection
+        uses: microsoft/powerplatform-actions/who-am-i@v1
+        with:
+          environment-url: https://orge065b187.crm4.dynamics.com
+          app-id: fdfe9ed0-a6d4-44f4-80ed-c4d9f2aaf6d7
+          client-secret: ${{ secrets.POWERPLATFORMSPN }}
+          tenant-id: 540a9168-5a7c-42d3-9989-d4d22958d81c
+
+      - name: Export solution from environment
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url: https://orge065b187.crm4.dynamics.com
+          app-id: fdfe9ed0-a6d4-44f4-80ed-c4d9f2aaf6d7
+          client-secret: ${{ secrets.POWERPLATFORMSPN }}
+          tenant-id: 540a9168-5a7c-42d3-9989-d4d22958d81c
+          solution-name: ALMLab
+          solution-output-file: out/solutions/ALMLab.zip
+
+      - name: Unpack solution
+        uses: microsoft/powerplatform-actions/unpack-solution@v1
+        with:
+          solution-file: out/solutions/ALMLab.zip
+          solution-folder: solutions/ALMLab
+          solution-type: Unmanaged
+
+      - name: Create branch for solution
+        run: |
+          BRANCH_NAME="solution-update-$(date +%Y%m%d%H%M%S)"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git checkout -b $BRANCH_NAME
+          git add solutions/ALMLab
+          git commit -m "Export and unpack ALMLab solution"
+          git push origin $BRANCH_NAME
