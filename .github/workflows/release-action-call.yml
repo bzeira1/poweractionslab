@@ -11,4 +11,5 @@ jobs:
       environment-url: https://orge065b187.crm4.dynamics.com
       app-id: fdfe9ed0-a6d4-44f4-80ed-c4d9f2aaf6d7
       tenant-id: 540a9168-5a7c-42d3-9989-d4d22958d81c
-      client-secret: ${{ secrets.POWERPLATFORMSPN }}
+    secrets:
+      client-secret: POWERPLATFORMSPN
