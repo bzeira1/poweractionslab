@@ -1,4 +1,4 @@
-name: Release Solution To Prod (Reusable)
+name: Release Solution to Production
 
 on:
   workflow_call:
@@ -12,33 +12,26 @@ on:
       tenant-id:
         required: true
         type: string
+    secrets:
       client-secret:
         required: true
-        type: string
 
 jobs:
-  release-solution:
+  release-to-prod:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Power Platform tools
+      - name: Power Platform Tool Installer
         uses: microsoft/powerplatform-actions/actions-install@v1
 
-      - name: Pack managed solution
-        uses: microsoft/powerplatform-actions/pack-solution@v1
-        with:
-          solution-folder: solutions/ALMLab
-          solution-file: out/solutions/ALMLab_managed.zip
-          solution-type: Managed
-
-      - name: Import managed solution to production
+      - name: Import solution into production
         uses: microsoft/powerplatform-actions/import-solution@v1
         with:
           environment-url: ${{ inputs.environment-url }}
           app-id: ${{ inputs.app-id }}
-          client-secret: ${{ inputs.client-secret }}
+          client-secret: ${{ secrets.client-secret }}
           tenant-id: ${{ inputs.tenant-id }}
           solution-file: out/solutions/ALMLab_managed.zip
