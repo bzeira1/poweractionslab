@@ -13,4 +13,3 @@ jobs:
       tenant-id: 540a9168-5a7c-42d3-9989-d4d22958d81c
     secrets:
       client-secret: ${{ secrets.POWERPLATFORMSPN }}
-
