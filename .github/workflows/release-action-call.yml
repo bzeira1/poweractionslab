@@ -1,14 +1,14 @@
-name: Release action
+name: Call Release To Prod Workflow
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 permissions:
   contents: write
 
 jobs:
-  Release-solution-ALMLab:
+  call-release-workflow:
     uses: ./.github/workflows/release-solution-to-prod-with-inputs.yml
     with:
       solution_name: ALMLab
