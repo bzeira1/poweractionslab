@@ -47,6 +47,6 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git checkout -b $BRANCH_NAME
-          git add solutions/ALMLab/*
+          git add solutions/ALMLab
           git commit -m "Export and unpack ALMLab solution"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} $BRANCH_NAME
