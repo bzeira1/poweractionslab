@@ -4,7 +4,7 @@ on:
     inputs: 
       solution_name:
         type: string
-        default: galdev       
+        default: barakTest       
       solution_shipping_folder:
         type: string
         default: out/ship/
