@@ -1,20 +1,18 @@
-name: Call Release To Prod Workflow
+name: Release action
 
 on:
   release:
-    types: [published]
-
+      types: [created]        
 permissions:
   contents: write
-
 jobs:
-  call-release-workflow:
+  Release-solution-ALMLab:
     uses: ./.github/workflows/release-solution-to-prod-with-inputs.yml
     with:
-      solution_name: ALMLab
-      BUILD_ENVIRONMENT_URL: https://orge065b187.crm4.dynamics.com
-      PRODUCTION_ENVIRONMENT_URL: https://orge065b187.crm4.dynamics.com
-      CLIENT_ID: fdfe9ed0-a6d4-44f4-80ed-c4d9f2aaf6d7
-      TENANT_ID: 540a9168-5a7c-42d3-9989-d4d22958d81c
+     solution_name: ALMLab
+      BUILD_ENVIRONMENT_URL: "https://orge065b187.crm4.dynamics.com"
+      PRODUCTION_ENVIRONMENT_URL: "https://orge065b187.crm4.dynamics.com"
+      CLIENT_ID: 'fdfe9ed0-a6d4-44f4-80ed-c4d9f2aaf6d7'
+      TENANT_ID: '540a9168-5a7c-42d3-9989-d4d22958d81c'     
     secrets:
-      envSecret: POWERPLATFORMSPN
+      envSecret: ${{ secrets.POWERPLATFORMSPN }}
