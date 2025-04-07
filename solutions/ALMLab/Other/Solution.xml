@@ -82,19 +82,5 @@
       <RootComponent type="62" schemaName="almlab_TimeOffRequest" behavior="0" />
       <RootComponent type="80" schemaName="almlab_TimeOffRequest" behavior="0" />
     </RootComponents>
-    <MissingDependencies>
-      <MissingDependency>
-        <Required type="61" schemaName="msdyn_/Images/AppModule_Default_Icon.png" displayName="msdyn_/Images/AppModule_Default_Icon.png" solution="AppModuleWebResources (2.5)">
-          <package appName="AppModule Web Resources Package" version="2.5">AppModuleWebResources (2.5)</package>
-        </Required>
-        <Dependent type="80" schemaName="almlab_TimeOffRequest" displayName="Time Off Requests" />
-      </MissingDependency>
-      <MissingDependency>
-        <Required type="SettingDefinition" displayName="AppChannel" solution="msdyn_AppFrameworkInfraExtensions (1.0.0.12)" id.uniquename="AppChannel">
-          <package appName="PowerAppsAppFramework Package" version="1.0.0.17">PowerAppsAppFramework_Anchor (1.0.0.17)</package>
-        </Required>
-        <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=almlab_TimeOffRequests,settingdefinitionid.uniquename=AppChannel" id.parentappmoduleid.uniquename="almlab_TimeOffRequests" id.settingdefinitionid.uniquename="AppChannel" />
-      </MissingDependency>
-    </MissingDependencies>
   </SolutionManifest>
 </ImportExportXml>
