@@ -17,7 +17,7 @@ jobs:
       - name: WhoAmI - Verify connection
         uses: microsoft/powerplatform-actions/who-am-i@v1
         with:
-          environment-url: https://orge065b187.crm4.dynamics.com
+          environment-url: https://orga129dc5e.crm4.dynamics.com
           app-id: fdfe9ed0-a6d4-44f4-80ed-c4d9f2aaf6d7
           client-secret: ${{ secrets.POWERPLATFORMSPN }}
           tenant-id: 540a9168-5a7c-42d3-9989-d4d22958d81c
@@ -25,7 +25,7 @@ jobs:
       - name: Export solution from environment
         uses: microsoft/powerplatform-actions/export-solution@v1
         with:
-          environment-url: https://orge065b187.crm4.dynamics.com
+          environment-url: https://orga129dc5e.crm4.dynamics.com
           app-id: fdfe9ed0-a6d4-44f4-80ed-c4d9f2aaf6d7
           client-secret: ${{ secrets.POWERPLATFORMSPN }}
           tenant-id: 540a9168-5a7c-42d3-9989-d4d22958d81c
@@ -49,6 +49,5 @@ jobs:
           git checkout -b $BRANCH_NAME
           git add solutions/ALMLab
           git reset .github/workflows/export-and-branch-solution.yml || true
-          git commit -m "Export and unpack ALMLab solution"
+          git commit -m "Export and unpack ALMLab solution from Dev environment"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} $BRANCH_NAME
- 
