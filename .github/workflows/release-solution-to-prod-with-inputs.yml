@@ -1,53 +1,101 @@
-name: Export and Unpack Solution
+name: release-solution-to-prod-reusable
 
 on:
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      solution_name:
+        description: 'The solution name.'
+        type: string
+        default: ALMLab
+      BUILD_ENVIRONMENT_URL:
+        description: 'Build environment URL.'
+        type: string
+        required: true
+      PRODUCTION_ENVIRONMENT_URL:
+        description: 'Production environment URL.'
+        type: string
+        required: true
+      CLIENT_ID:
+        description: 'The client ID.'
+        type: string
+        required: true
+      TENANT_ID:
+        description: 'The tenant ID.'
+        type: string
+        required: true
+    secrets:
+      envSecret:
+        description: 'The secret value for authentication using SPN.'
+        required: true
 
 jobs:
-  export-solution:
-    runs-on: ubuntu-latest
-
+  convert-to-managed:
+    runs-on: windows-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
 
-      - name: Power Platform Tool Installer
+      - name: Install PAC CLI
         uses: microsoft/powerplatform-actions/actions-install@v1
 
-      - name: WhoAmI - Verify connection
-        uses: microsoft/powerplatform-actions/who-am-i@v1
+      - name: Pack solution (locally)
+        uses: microsoft/powerplatform-actions/pack-solution@v1
         with:
-          environment-url: https://orga129dc5e.crm4.dynamics.com  # Dev
-          app-id: fdfe9ed0-a6d4-44f4-80ed-c4d9f2aaf6d7
-          client-secret: ${{ secrets.POWERPLATFORMSPN }}
-          tenant-id: 540a9168-5a7c-42d3-9989-d4d22958d81c
-
-      - name: Export solution from environment
-        uses: microsoft/powerplatform-actions/export-solution@v1
-        with:
-          environment-url: https://orga129dc5e.crm4.dynamics.com  # Dev
-          app-id: fdfe9ed0-a6d4-44f4-80ed-c4d9f2aaf6d7
-          client-secret: ${{ secrets.POWERPLATFORMSPN }}
-          tenant-id: 540a9168-5a7c-42d3-9989-d4d22958d81c
-          solution-name: ALMLab
-          solution-output-file: out/solutions/ALMLab.zip
-
-      - name: Unpack solution
-        uses: microsoft/powerplatform-actions/unpack-solution@v1
-        with:
-          solution-file: out/solutions/ALMLab.zip
-          solution-folder: solutions/ALMLab
+          solution-folder: solutions/${{ inputs.solution_name }}
+          solution-file: out/solutions/${{ inputs.solution_name }}.zip
           solution-type: Unmanaged
 
-      - name: Push branch to GitHub
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          BRANCH_NAME="solution-update-$(date +%Y%m%d%H%M%S)"
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git checkout -b $BRANCH_NAME
-          git add solutions/ALMLab
-          git reset .github/workflows/export-and-branch-solution.yml || true
-          git commit -m "Export and unpack ALMLab solution"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} $BRANCH_NAME
+      - name: Import solution as unmanaged (Build environment)
+        uses: microsoft/powerplatform-actions/import-solution@v1
+        with:
+          environment-url: ${{ inputs.BUILD_ENVIRONMENT_URL }}
+          app-id: ${{ inputs.CLIENT_ID }}
+          client-secret: ${{ secrets.envSecret }}
+          tenant-id: ${{ inputs.TENANT_ID }}
+          solution-file: out/solutions/${{ inputs.solution_name }}.zip
+          force-overwrite: true
+          publish-changes: true
+
+      - name: Export solution as managed
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url: ${{ inputs.BUILD_ENVIRONMENT_URL }}
+          app-id: ${{ inputs.CLIENT_ID }}
+          client-secret: ${{ secrets.envSecret }}
+          tenant-id: ${{ inputs.TENANT_ID }}
+          solution-name: ${{ inputs.solution_name }}
+          managed: true
+          solution-output-file: out/release/${{ inputs.solution_name }}_managed.zip
+
+      - name: Upload managed solution
+        uses: actions/upload-artifact@v4
+        with:
+          name: managedSolution
+          path: out/release/
+
+  release-to-production:
+    needs: convert-to-managed
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install PAC CLI
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Download managed solution artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: managedSolution
+          path: out/release/
+
+      - name: Import solution to PROD environment as managed
+        uses: microsoft/powerplatform-actions/import-solution@v1
+        with:
+          environment-url: ${{ inputs.PRODUCTION_ENVIRONMENT_URL }}
+          app-id: ${{ inputs.CLIENT_ID }}
+          client-secret: ${{ secrets.envSecret }}
+          tenant-id: ${{ inputs.TENANT_ID }}
+          solution-file: out/release/${{ inputs.solution_name }}_managed.zip
+          force-overwrite: true
+          publish-changes: true
