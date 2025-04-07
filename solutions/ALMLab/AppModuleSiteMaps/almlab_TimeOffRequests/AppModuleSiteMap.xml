@@ -6,12 +6,12 @@
   <ShowPinned>True</ShowPinned>
   <ShowRecents>True</ShowRecents>
   <SiteMap IntroducedVersion="7.0.0.0">
-    <Area Id="area_ae04c53e" ResourceId="SitemapDesigner.NewTitle" DescriptionResourceId="SitemapDesigner.NewTitle" ShowGroups="true" IntroducedVersion="7.0.0.0">
+    <Area Id="area_84183838" ResourceId="SitemapDesigner.NewTitle" DescriptionResourceId="SitemapDesigner.NewTitle" ShowGroups="true" IntroducedVersion="7.0.0.0">
       <Titles>
         <Title LCID="1033" Title="Area1" />
       </Titles>
-      <Group Id="group_b8d2d6dc" ResourceId="SitemapDesigner.NewGroup" DescriptionResourceId="SitemapDesigner.NewGroup" IntroducedVersion="7.0.0.0" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
-        <SubArea Id="subarea_4cd991b3" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="almlab_timeoffrequests" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA" />
+      <Group Id="group_ffdf8971" ResourceId="SitemapDesigner.NewGroup" DescriptionResourceId="SitemapDesigner.NewGroup" IntroducedVersion="7.0.0.0" IsProfile="false" ToolTipResourseId="SitemapDesigner.Unknown">
+        <SubArea Id="subarea_3fda46a9" Icon="/_imgs/imagestrips/transparent_spacer.gif" Entity="almlab_timeoffrequest" Client="All,Outlook,OutlookLaptopClient,OutlookWorkstationClient,Web" AvailableOffline="true" PassParams="false" Sku="All,OnPremise,Live,SPLA" />
       </Group>
     </Area>
   </SiteMap>
