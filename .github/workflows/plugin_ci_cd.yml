@@ -40,7 +40,7 @@ jobs:
 
       - name: Export Solution from Feature ENV
         run: |
-          pac solution export --name "galdev" --path exported-solution.zip --managed false --include customization,isvconfig
+          pac solution export --name "plugin" --path exported-solution.zip --managed false --include customization,isvconfig
         shell: pwsh
 
       - name: Extract Git Commit Hash from Exported Solution
