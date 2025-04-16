@@ -1,0 +1,188 @@
+﻿name: Plugin CI/CD
+
+on:
+  pull_request:
+    branches:
+      - develop
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  export-feature-env:
+    name: Export Solution from Feature ENV
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for proper git operations
+
+      - name: Extract Feature Branch Name
+        id: branch-name
+        run: |
+          echo "Feature branch: ${{ github.event.pull_request.head.ref }}"
+          echo "FEATURE_BRANCH=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
+
+      - name: Install Power Platform CLI
+        run: |
+          dotnet tool update --global Microsoft.PowerApps.CLI.Tool
+          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          pac help
+        shell: pwsh
+
+      - name: Authenticate with Power Platform
+        run: |
+          pac auth create --name "FeatureENV" --url "https://org336acdfe.crm4.dynamics.com" `
+            --applicationId "${{ secrets.POWERPLATFORM_CLIENT_ID }}" `
+            --clientSecret "${{ secrets.PowerPlatformSPN }}" `
+            --tenant "${{ secrets.POWERPLATFORM_TENANT_ID }}"
+        shell: pwsh
+
+      - name: Export Solution from Feature ENV
+        run: |
+          pac solution export --name "galdev" --path exported-solution.zip --managed false --include customization,isvconfig
+        shell: pwsh
+
+      - name: Extract Git Commit Hash from Exported Solution
+        run: |
+          Expand-Archive -Path exported-solution.zip -DestinationPath extracted-solution
+          
+          # Find the DLL file
+          $dllPath = (Get-ChildItem -Path "extracted-solution\PluginAssemblies" -Recurse -Filter "PowerPlatformPluginLab.dll").FullName
+          
+          if ($dllPath) {
+            Write-Host "Found DLL at: $dllPath"
+            
+            # Load the assembly and extract the gitversion.txt resource
+            $resourceName = "gitversion.txt"
+            $assembly = [System.Reflection.Assembly]::LoadFile($dllPath)
+            $stream = $assembly.GetManifestResourceStream($resourceName)
+            
+            if ($stream -ne $null) {
+              $reader = New-Object System.IO.StreamReader($stream)
+              $content = $reader.ReadToEnd()
+              $reader.Close()
+              $stream.Close()
+              
+              # Save the extracted commit hash
+              Set-Content -Path extracted-commit-hash.txt -Value $content.Trim()
+              Write-Host "Successfully extracted git commit hash: $content"
+            } else {
+              Write-Error "Resource '$resourceName' not found in the assembly."
+              exit 1
+            }
+          } else {
+            Write-Error "DLL file not found in the extracted solution."
+            exit 1
+          }
+        shell: pwsh
+
+      - name: Upload Extracted Commit Hash
+        uses: actions/upload-artifact@v4
+        with:
+          name: feature-commit-hash
+          path: extracted-commit-hash.txt
+
+      - name: Upload Exported Solution
+        uses: actions/upload-artifact@v4
+        with:
+          name: exported-solution
+          path: exported-solution.zip
+
+  compare-git-hashes:
+    name: Compare Git Hashes
+    needs: export-feature-env
+    runs-on: ubuntu-latest
+    outputs:
+      MATCHED: ${{ steps.compare.outputs.MATCHED }}
+
+    steps:
+      - name: Checkout Feature Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Get Latest Commit from Feature Branch
+        id: feature-commit
+        run: |
+          FEATURE_BRANCH_COMMIT=$(git rev-parse HEAD)
+          echo "Feature branch commit: $FEATURE_BRANCH_COMMIT"
+          echo "FEATURE_COMMIT=$FEATURE_BRANCH_COMMIT" >> $GITHUB_ENV
+          echo "FEATURE_COMMIT=$FEATURE_BRANCH_COMMIT" >> $GITHUB_OUTPUT
+
+      - name: Download Feature ENV Commit Hash
+        uses: actions/download-artifact@v4
+        with:
+          name: feature-commit-hash
+          path: feature-hash
+
+      - name: Read Feature Commit Hash
+        id: feature-hash
+        run: |
+          if [ ! -f "feature-hash/extracted-commit-hash.txt" ]; then
+            echo "Error: Feature commit hash file not found"
+            exit 1
+          fi
+          
+          EXTRACTED_COMMIT_HASH=$(cat feature-hash/extracted-commit-hash.txt | tr -d '\r')
+          echo "Extracted Feature Commit Hash: $EXTRACTED_COMMIT_HASH"
+          echo "EXTRACTED_COMMIT=$EXTRACTED_COMMIT_HASH" >> $GITHUB_ENV
+          echo "EXTRACTED_COMMIT=$EXTRACTED_COMMIT_HASH" >> $GITHUB_OUTPUT
+
+      - name: Compare Hashes
+        id: compare
+        run: |
+          echo "Comparing hashes:"
+          echo "  - Feature branch commit: $FEATURE_COMMIT"
+          echo "  - Extracted DLL commit: $EXTRACTED_COMMIT"
+          
+          if [ "$FEATURE_COMMIT" = "$EXTRACTED_COMMIT" ]; then
+            echo "✅ Hashes match, proceeding with deployment."
+            echo "MATCHED=true" >> $GITHUB_ENV
+            echo "MATCHED=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Hashes do not match! Stopping deployment."
+            echo "MATCHED=false" >> $GITHUB_ENV
+            echo "MATCHED=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notify on Hash Mismatch
+        if: ${{ steps.compare.outputs.MATCHED == 'false' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.setFailed("Git hashes do not match! Ensure the feature branch was properly merged into develop.")
+
+  promote-to-dev:
+    name: Promote Solution to Dev ENV
+    needs: compare-git-hashes
+    runs-on: windows-latest
+    if: ${{ needs.compare-git-hashes.outputs.MATCHED == 'true' }}
+
+    steps:
+      - name: Download Exported Solution
+        uses: actions/download-artifact@v4
+        with:
+          name: exported-solution
+          path: .
+
+      - name: Install Power Platform CLI
+        run: |
+          dotnet tool update --global Microsoft.PowerApps.CLI.Tool
+          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          pac help
+        shell: pwsh
+
+      - name: Authenticate with Power Platform
+        run: |
+          pac auth create --name "DevENV" --url "https://orga129dc5e.crm4.dynamics.com" `
+            --applicationId "${{ secrets.POWERPLATFORM_CLIENT_ID }}" `
+            --clientSecret "${{ secrets.PowerPlatformSPN }}" `
+            --tenant "${{ secrets.POWERPLATFORM_TENANT_ID }}"
+        shell: pwsh
+
+      - name: Import Solution into Dev ENV
+        run: |
+          pac solution import --path exported-solution.zip
+        shell: pwsh
