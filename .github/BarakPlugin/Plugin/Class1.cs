@@ -25,10 +25,10 @@ namespace Plugin
             var service = serviceFactory.CreateOrganizationService(context.UserId);
 
             // Create a new record for the "almlab_test" table
-            var record = new Entity("almlab_test");
+            var record = new Entity("bzeira_plugin");
 
             // Set a value for the "almlab_new" column (assuming it's a text field)
-            record["almlab_text"] = "Example Value"; // Replace with actual logic
+            record["bzeira_plugin"] = "Example Value"; // Replace with actual logic
 
             // Create the record in Dataverse
             service.Create(record);
