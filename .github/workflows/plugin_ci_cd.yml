@@ -4,7 +4,7 @@ on:
   pull_request:
     branches:
       - develop
-  workflow_dispatch:
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   export-feature-env:
@@ -15,7 +15,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Fetch full history for proper git operations
 
       - name: Extract Feature Branch Name
         id: branch-name
@@ -24,42 +24,47 @@ jobs:
           echo "FEATURE_BRANCH=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
 
       - name: Install Power Platform CLI
-        uses: microsoft/powerplatform-install@v0
+        run: |
+          dotnet tool update --global Microsoft.PowerApps.CLI.Tool
+          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          pac help
+        shell: pwsh
 
       - name: Authenticate with Power Platform
-        uses: microsoft/powerplatform-authenticate@v0
-        with:
-          environment-url: https://org336acdfe.crm4.dynamics.com
-          app-id: ${{ secrets.POWERPLATFORM_CLIENT_ID }}
-          client-secret: ${{ secrets.POWERPLATFORMSPN }}
-          tenant-id: ${{ secrets.POWERPLATFORM_TENANT_ID }}
+        run: |
+          pac auth create --name "FeatureENV" --url "https://org336acdfe.crm4.dynamics.com" `
+            --applicationId "${{ secrets.POWERPLATFORM_CLIENT_ID }}" `
+            --clientSecret "${{ secrets.PowerPlatformSPN }}" `
+            --tenant "${{ secrets.POWERPLATFORM_TENANT_ID }}"
+        shell: pwsh
 
       - name: Export Solution from Feature ENV
-        uses: microsoft/powerplatform-export-solution@v0
-        with:
-          environment-url: https://org336acdfe.crm4.dynamics.com
-          app-id: ${{ secrets.POWERPLATFORM_CLIENT_ID }}
-          client-secret: ${{ secrets.POWERPLATFORMSPN }}
-          tenant-id: ${{ secrets.POWERPLATFORM_TENANT_ID }}
-          solution-name: plugin
-          solution-output-file: exported-solution.zip
-          managed: false
-          include: customization,isvconfig
+        run: |
+          pac solution export --name "plugin" --path exported-solution.zip --managed false --include customization,isvconfig
+        shell: pwsh
 
       - name: Extract Git Commit Hash from Exported Solution
         run: |
           Expand-Archive -Path exported-solution.zip -DestinationPath extracted-solution
+          
+          # Find the DLL file
           $dllPath = (Get-ChildItem -Path "extracted-solution\PluginAssemblies" -Recurse -Filter "PowerPlatformPluginLab.dll").FullName
+          
           if ($dllPath) {
             Write-Host "Found DLL at: $dllPath"
+            
+            # Load the assembly and extract the gitversion.txt resource
             $resourceName = "gitversion.txt"
             $assembly = [System.Reflection.Assembly]::LoadFile($dllPath)
             $stream = $assembly.GetManifestResourceStream($resourceName)
+            
             if ($stream -ne $null) {
               $reader = New-Object System.IO.StreamReader($stream)
               $content = $reader.ReadToEnd()
               $reader.Close()
               $stream.Close()
+              
+              # Save the extracted commit hash
               Set-Content -Path extracted-commit-hash.txt -Value $content.Trim()
               Write-Host "Successfully extracted git commit hash: $content"
             } else {
@@ -102,6 +107,7 @@ jobs:
         id: feature-commit
         run: |
           FEATURE_BRANCH_COMMIT=$(git rev-parse HEAD)
+          echo "Feature branch commit: $FEATURE_BRANCH_COMMIT"
           echo "FEATURE_COMMIT=$FEATURE_BRANCH_COMMIT" >> $GITHUB_ENV
           echo "FEATURE_COMMIT=$FEATURE_BRANCH_COMMIT" >> $GITHUB_OUTPUT
 
@@ -118,17 +124,25 @@ jobs:
             echo "Error: Feature commit hash file not found"
             exit 1
           fi
+          
           EXTRACTED_COMMIT_HASH=$(cat feature-hash/extracted-commit-hash.txt | tr -d '\r')
+          echo "Extracted Feature Commit Hash: $EXTRACTED_COMMIT_HASH"
           echo "EXTRACTED_COMMIT=$EXTRACTED_COMMIT_HASH" >> $GITHUB_ENV
           echo "EXTRACTED_COMMIT=$EXTRACTED_COMMIT_HASH" >> $GITHUB_OUTPUT
 
       - name: Compare Hashes
         id: compare
         run: |
+          echo "Comparing hashes:"
+          echo "  - Feature branch commit: $FEATURE_COMMIT"
+          echo "  - Extracted DLL commit: $EXTRACTED_COMMIT"
+          
           if [ "$FEATURE_COMMIT" = "$EXTRACTED_COMMIT" ]; then
+            echo "✅ Hashes match, proceeding with deployment."
             echo "MATCHED=true" >> $GITHUB_ENV
             echo "MATCHED=true" >> $GITHUB_OUTPUT
           else
+            echo "❌ Hashes do not match! Stopping deployment."
             echo "MATCHED=false" >> $GITHUB_ENV
             echo "MATCHED=false" >> $GITHUB_OUTPUT
           fi
@@ -154,23 +168,21 @@ jobs:
           path: .
 
       - name: Install Power Platform CLI
-        uses: microsoft/powerplatform-install@v0
+        run: |
+          dotnet tool update --global Microsoft.PowerApps.CLI.Tool
+          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          pac help
+        shell: pwsh
 
       - name: Authenticate with Power Platform
-        uses: microsoft/powerplatform-authenticate@v0
-        with:
-          environment-url: https://orga129dc5e.crm4.dynamics.com
-          app-id: ${{ secrets.POWERPLATFORM_CLIENT_ID }}
-          client-secret: ${{ secrets.POWERPLATFORMSPN }}
-          tenant-id: ${{ secrets.POWERPLATFORM_TENANT_ID }}
+        run: |
+          pac auth create --name "DevENV" --url "https://orga129dc5e.crm4.dynamics.com" `
+            --applicationId "${{ secrets.POWERPLATFORM_CLIENT_ID }}" `
+            --clientSecret "${{ secrets.PowerPlatformSPN }}" `
+            --tenant "${{ secrets.POWERPLATFORM_TENANT_ID }}"
+        shell: pwsh
 
       - name: Import Solution into Dev ENV
-        uses: microsoft/powerplatform-import-solution@v0
-        with:
-          environment-url: https://orga129dc5e.crm4.dynamics.com
-          app-id: ${{ secrets.POWERPLATFORM_CLIENT_ID }}
-          client-secret: ${{ secrets.POWERPLATFORMSPN }}
-          tenant-id: ${{ secrets.POWERPLATFORM_TENANT_ID }}
-          solution-file: exported-solution.zip
-          force-overwrite: true
-          publish-changes: true
+        run: |
+          pac solution import --path exported-solution.zip
+        shell: pwsh
