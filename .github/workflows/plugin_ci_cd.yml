@@ -24,14 +24,10 @@ jobs:
           echo "FEATURE_BRANCH=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
 
       - name: Install Power Platform CLI
-        run: |
-          dotnet tool update --global Microsoft.PowerApps.CLI.Tool
-          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
-          pac help
-        shell: pwsh
+        uses: microsoft/powerplatform-actions/actions-install@v1
 
       - name: Authenticate with Power Platform
-        uses: microsoft/powerplatform-actions/authenticate@v1
+        uses: microsoft/powerplatform-actions/actions-authenticate@v1
         with:
           environment-url: https://org336acdfe.crm4.dynamics.com
           app-id: ${{ secrets.POWERPLATFORM_CLIENT_ID }}
@@ -39,9 +35,16 @@ jobs:
           tenant-id: ${{ secrets.POWERPLATFORM_TENANT_ID }}
 
       - name: Export Solution from Feature ENV
-        run: |
-          pac solution export --name "plugin" --path exported-solution.zip --managed false --include customization,isvconfig
-        shell: pwsh
+        uses: microsoft/powerplatform-actions/actions-export-solution@v1
+        with:
+          environment-url: https://org336acdfe.crm4.dynamics.com
+          app-id: ${{ secrets.POWERPLATFORM_CLIENT_ID }}
+          client-secret: ${{ secrets.PowerPlatformSPN }}
+          tenant-id: ${{ secrets.POWERPLATFORM_TENANT_ID }}
+          solution-name: plugin
+          solution-output-file: exported-solution.zip
+          managed: false
+          include: customization,isvconfig
 
       - name: Extract Git Commit Hash from Exported Solution
         run: |
@@ -157,14 +160,10 @@ jobs:
           path: .
 
       - name: Install Power Platform CLI
-        run: |
-          dotnet tool update --global Microsoft.PowerApps.CLI.Tool
-          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
-          pac help
-        shell: pwsh
+        uses: microsoft/powerplatform-actions/actions-install@v1
 
       - name: Authenticate with Power Platform
-        uses: microsoft/powerplatform-actions/authenticate@v1
+        uses: microsoft/powerplatform-actions/actions-authenticate@v1
         with:
           environment-url: https://orga129dc5e.crm4.dynamics.com
           app-id: ${{ secrets.POWERPLATFORM_CLIENT_ID }}
