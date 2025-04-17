@@ -43,20 +43,19 @@ jobs:
           pac solution export --name "plugin" --path exported-solution.zip --managed false --include customization,isvconfig
         shell: pwsh
 
-      - name: Build Plugin DLL
+      - name: Extract Git Commit Hash from Exported Solution
         run: |
-          dotnet build YourPluginProject.csproj -c Release
-        shell: pwsh
-
-      - name: Extract Git Commit Hash from Built DLL
-        run: |
-          $dllPath = Get-ChildItem -Recurse -Filter "Plugin.dll" | Select-Object -First 1
-
+          Expand-Archive -Path exported-solution.zip -DestinationPath extracted-solution
+          
+          # Find the DLL file
+          $dllPath = (Get-ChildItem -Path "extracted-solution\PluginAssemblies" -Recurse -Filter "Plugin.dll").FullName
+          
           if ($dllPath) {
-            Write-Host "Found DLL at: $($dllPath.FullName)"
+            Write-Host "Found DLL at: $dllPath"
             
+            # Load the assembly and extract the gitversion.txt resource
             $resourceName = "gitversion.txt"
-            $assembly = [System.Reflection.Assembly]::LoadFile($dllPath.FullName)
+            $assembly = [System.Reflection.Assembly]::LoadFile($dllPath)
             $stream = $assembly.GetManifestResourceStream($resourceName)
             
             if ($stream -ne $null) {
@@ -65,6 +64,7 @@ jobs:
               $reader.Close()
               $stream.Close()
               
+              # Save the extracted commit hash
               Set-Content -Path extracted-commit-hash.txt -Value $content.Trim()
               Write-Host "Successfully extracted git commit hash: $content"
             } else {
@@ -72,11 +72,10 @@ jobs:
               exit 1
             }
           } else {
-            Write-Error "DLL file not found after build."
+            Write-Error "DLL file not found in the extracted solution."
             exit 1
           }
         shell: pwsh
-
 
       - name: Upload Extracted Commit Hash
         uses: actions/upload-artifact@v4
