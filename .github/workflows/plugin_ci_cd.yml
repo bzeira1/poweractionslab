@@ -24,22 +24,22 @@ jobs:
           echo "FEATURE_BRANCH=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
 
       - name: Install Power Platform CLI
-        uses: microsoft/powerplatform-actions/actions-install@v1
+        uses: microsoft/powerplatform-install@v0
 
       - name: Authenticate with Power Platform
-        uses: microsoft/powerplatform-actions/actions-authenticate@v1
+        uses: microsoft/powerplatform-authenticate@v0
         with:
           environment-url: https://org336acdfe.crm4.dynamics.com
           app-id: ${{ secrets.POWERPLATFORM_CLIENT_ID }}
-          client-secret: ${{ secrets.PowerPlatformSPN }}
+          client-secret: ${{ secrets.POWERPLATFORMSPN }}
           tenant-id: ${{ secrets.POWERPLATFORM_TENANT_ID }}
 
       - name: Export Solution from Feature ENV
-        uses: microsoft/powerplatform-actions/actions-export-solution@v1
+        uses: microsoft/powerplatform-export-solution@v0
         with:
           environment-url: https://org336acdfe.crm4.dynamics.com
           app-id: ${{ secrets.POWERPLATFORM_CLIENT_ID }}
-          client-secret: ${{ secrets.PowerPlatformSPN }}
+          client-secret: ${{ secrets.POWERPLATFORMSPN }}
           tenant-id: ${{ secrets.POWERPLATFORM_TENANT_ID }}
           solution-name: plugin
           solution-output-file: exported-solution.zip
@@ -102,7 +102,6 @@ jobs:
         id: feature-commit
         run: |
           FEATURE_BRANCH_COMMIT=$(git rev-parse HEAD)
-          echo "Feature branch commit: $FEATURE_BRANCH_COMMIT"
           echo "FEATURE_COMMIT=$FEATURE_BRANCH_COMMIT" >> $GITHUB_ENV
           echo "FEATURE_COMMIT=$FEATURE_BRANCH_COMMIT" >> $GITHUB_OUTPUT
 
@@ -120,24 +119,19 @@ jobs:
             exit 1
           fi
           EXTRACTED_COMMIT_HASH=$(cat feature-hash/extracted-commit-hash.txt | tr -d '\r')
-          echo "Extracted Feature Commit Hash: $EXTRACTED_COMMIT_HASH"
           echo "EXTRACTED_COMMIT=$EXTRACTED_COMMIT_HASH" >> $GITHUB_ENV
           echo "EXTRACTED_COMMIT=$EXTRACTED_COMMIT_HASH" >> $GITHUB_OUTPUT
 
       - name: Compare Hashes
         id: compare
         run: |
-          echo "Comparing hashes:"
-          echo "  - Feature branch commit: $FEATURE_COMMIT"
-          echo "  - Extracted DLL commit: $EXTRACTED_COMMIT"
           if [ "$FEATURE_COMMIT" = "$EXTRACTED_COMMIT" ]; then
-            echo "✅ Hashes match, proceeding with deployment."
             echo "MATCHED=true" >> $GITHUB_ENV
             echo "MATCHED=true" >> $GITHUB_OUTPUT
           else
-            echo "❌ Hashes do not match! Stopping deployment."
             echo "MATCHED=false" >> $GITHUB_ENV
             echo "MATCHED=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Notify on Hash Mismatch
         if: ${{ steps.compare.outputs.MATCHED == 'false' }}
@@ -160,17 +154,23 @@ jobs:
           path: .
 
       - name: Install Power Platform CLI
-        uses: microsoft/powerplatform-actions/actions-install@v1
+        uses: microsoft/powerplatform-install@v0
 
       - name: Authenticate with Power Platform
-        uses: microsoft/powerplatform-actions/actions-authenticate@v1
+        uses: microsoft/powerplatform-authenticate@v0
         with:
           environment-url: https://orga129dc5e.crm4.dynamics.com
           app-id: ${{ secrets.POWERPLATFORM_CLIENT_ID }}
-          client-secret: ${{ secrets.PowerPlatformSPN }}
+          client-secret: ${{ secrets.POWERPLATFORMSPN }}
           tenant-id: ${{ secrets.POWERPLATFORM_TENANT_ID }}
 
       - name: Import Solution into Dev ENV
-        run: |
-          pac solution import --path exported-solution.zip
-        shell: pwsh
+        uses: microsoft/powerplatform-import-solution@v0
+        with:
+          environment-url: https://orga129dc5e.crm4.dynamics.com
+          app-id: ${{ secrets.POWERPLATFORM_CLIENT_ID }}
+          client-secret: ${{ secrets.POWERPLATFORMSPN }}
+          tenant-id: ${{ secrets.POWERPLATFORM_TENANT_ID }}
+          solution-file: exported-solution.zip
+          force-overwrite: true
+          publish-changes: true
