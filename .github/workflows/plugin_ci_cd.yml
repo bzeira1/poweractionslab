@@ -4,6 +4,8 @@ on:
   pull_request:
     branches:
       - develop
+  workflow_dispatch:  # Allow manual triggering
+
 jobs:
   export-feature-env:
     name: Export Solution from Feature ENV
