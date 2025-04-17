@@ -48,7 +48,7 @@ jobs:
           Expand-Archive -Path exported-solution.zip -DestinationPath extracted-solution
           
           # Find the DLL file
-          $dllPath = (Get-ChildItem -Path "extracted-solution\PluginAssemblies" -Recurse -Filter "*.dll").FullName
+          $dllPath = (Get-ChildItem -Path "extracted-solution\PluginAssemblies" -Recurse -Filter "Plugin.dll").FullName
           
           if ($dllPath) {
             Write-Host "Found DLL at: $dllPath"
