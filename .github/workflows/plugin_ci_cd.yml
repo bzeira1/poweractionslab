@@ -38,7 +38,7 @@ jobs:
         run: |
           dotnet tool update --global Microsoft.PowerApps.CLI.Tool
           "${Env:USERPROFILE}\.dotnet\tools" | Out-File -Append -Encoding utf8 $Env:GITHUB_PATH
-          pac --version
+          pac
         shell: pwsh
 
       - name: 🔐 Authenticate with Power Platform (Feature ENV)
@@ -157,7 +157,7 @@ jobs:
         run: |
           dotnet tool update --global Microsoft.PowerApps.CLI.Tool
           "${Env:USERPROFILE}\.dotnet\tools" | Out-File -Append -Encoding utf8 $Env:GITHUB_PATH
-          pac --version
+          pac
         shell: pwsh
 
       - name: 🔐 Authenticate with Power Platform (Dev ENV)
