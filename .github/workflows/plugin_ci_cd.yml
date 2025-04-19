@@ -3,7 +3,7 @@ name: Plugin CI/CD
 on:
   pull_request:
     branches:
-      - develop
+      - Dev
 jobs:
   export-feature-env:
     name: Export Solution from Feature ENV
