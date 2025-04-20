@@ -7,6 +7,7 @@ using Microsoft.Xrm.Sdk;
 
 namespace Plugin
 {
+    // Plugin class to create a record in Dataverse
     public class CreateRecordPlugin : IPlugin
     {
         public void Execute(IServiceProvider serviceProvider)
